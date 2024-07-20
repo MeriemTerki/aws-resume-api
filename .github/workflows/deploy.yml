@@ -1,23 +1,32 @@
-name: Deploy to lambda
+name: Deploy to Lambda
+
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
-  deploy_source:
-    name: deploy lambda from source
+  deploy:
     runs-on: ubuntu-latest
+    concurrency: production_environment
+
     steps:
-      - name: checkout source code
-        uses: actions/checkout@v3
-      - name: default deploy
-        uses: appleboy/lambda-action@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          # Directly specify the region here
-          aws_region: "us-east-1"
-          function_name: FetchResumeFunction
-          source: src/lambda_function.py
+          role-to-assume: arn:aws:iam::238447548277:role/github-deploy-meriemterki-aws-resume-api
+          role-session-name: github-deployment
+          aws-region: us-east-1 # Replace with your AWS region
+
+      - name: Deploy to AWS Lambda
+        uses: appleboy/lambda-action@v0.1.9
+        with:
+          function_name: "FetchResumeFunction" # Replace with your Lambda function name
+          zip_file: "src/lambda_function.zip" # Replace with the path to your ZIP file
